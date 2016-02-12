@@ -2,20 +2,49 @@ package client;
 import client.model.Node;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.LinkedList;
 import java.util.Queue;
 
-class BFS_NODE{
-	int distance, parent; 
-	public BFS_NODE(){
-		distance = Integer.MAX_VALUE;
+class SORT_UTIL{
+	World _world;
+	SORT_UTIL(World input_world){
+		this._world = input_world;
+	}
+	int my_cmp (Node a, Node b, String[] factor){
+		// STRUCTURE: "IF A > B RETURN 0" 
+		if( factor.equals("index") ){
+			if(a.getIndex() > b.getIndex())
+				return 0;
+			else 
+				return 1;
+		}else if(factor.equals("weight")){
+			if( a.getNeighbours().length > b.getNeighbours().length )
+				return 0;
+			else
+				return 1;
+		}
+		return 0;
+	}	
+	void my_sort(ArrayList<Node> list, String[] factor, int ascending){
+		int n = list.size();
+		boolean flag = true;
+		while(flag == true){
+			flag = false;
+			for(int i=0; i<n-1; i++)
+				if( my_cmp(list.get(i), list.get(i+1), factor) != ascending){
+					Collections.swap(list, i, i+1);
+					flag = true;
+				}					
+		}			
 	}
 }
+
 class WARSHALL{
 	int size, MY_MAX;
 	Node[] NODES;
-	int [][] graph;
-	int [][] D, P;
+	public int [][] graph;
+	public int [][] D, P;
 	
 	/*====================================================================*/
 	WARSHALL(World _world){ // O(n^3)				
@@ -31,7 +60,7 @@ class WARSHALL{
 			graph[i][i] = 1;
 			Node[] NGH = NODES[i].getNeighbours();			
 			for(Node ngh:NGH)
-				graph[i][ngh.getIndex()] = graph[ngh.getIndex()][i] = 1;
+				graph[i][ngh.getIndex()] = 1;
 		}
 		for(int i=0; i<size; i++)
 			for(int j=0; j<size; j++)
@@ -69,6 +98,12 @@ class WARSHALL{
 	}
 }
 
+class BFS_NODE{
+	int distance, parent; 
+	public BFS_NODE(){
+		distance = Integer.MAX_VALUE;
+	}
+}
 
 public class AI {
 // -------------------------------- GlOBAL VARIABLES HERE
@@ -76,7 +111,7 @@ public class AI {
 	WARSHALL warshall;
 // -------------------------------------------------------	
 	void initialize(){
-		// Run one time, initialize Global Variables
+		// Run one time, initialize Global Variables here
 		this.warshall = new WARSHALL(this.my_world);
 	}
 	
@@ -152,7 +187,6 @@ public class AI {
             }
             */
         }
-    		
 	}catch(Exception e){}
 	}
 }
