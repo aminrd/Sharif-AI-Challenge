@@ -2,11 +2,8 @@ package client;
 import client.model.Node;
 
 import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Comparator;
 import java.util.LinkedList;
 import java.util.Queue;
-import java.util.Random;
 
 class BFS_NODE{
 	int distance, parent; 
@@ -14,19 +11,77 @@ class BFS_NODE{
 		distance = Integer.MAX_VALUE;
 	}
 }
-
-
+class WARSHALL{
+	int size, MY_MAX;
+	Node[] NODES;
+	int [][] graph;
+	int [][] D, P;
+	
+	/*====================================================================*/
+	WARSHALL(World _world){ // O(n^3)				
+		NODES = _world.getMap().getNodes();
+		this.size = NODES.length;
+		this.MY_MAX = size + 100;
+		
+		this.graph  = new int[size][size];
+		this.D 	= new int[size][size];
+		this.P 	= new int[size][size];
+		
+		for(int i=0; i<size; i++){
+			graph[i][i] = 1;
+			Node[] NGH = NODES[i].getNeighbours();			
+			for(Node ngh:NGH)
+				graph[i][ngh.getIndex()] = graph[ngh.getIndex()][i] = 1;
+		}
+		for(int i=0; i<size; i++)
+			for(int j=0; j<size; j++)
+				if( i==j )
+					P[i][i] = MY_MAX;
+				else if (graph[i][j] == 1){
+					D[i][j] = 1; // Or other distance value 
+					P[i][j] = j;					
+				}else
+					D[i][j] = P[i][j] = MY_MAX;
+	
+		for(int k=0; k<size; k++)
+			for(int i=0; i<size; i++)
+				for(int j=0; j<size; j++)
+					if( D[i][k]+D[k][j] < D[i][j] ){
+						D[i][j] = D[i][k]+D[k][j];
+						P[i][j] = P[i][k];
+					}
+	}
+	boolean path_exist(Node start, Node dest){
+		if(D[start.getIndex()][dest.getIndex()] == MY_MAX)
+			return false;
+		return true;
+	}
+	boolean short_path(Node start, Node dest, ArrayList<Node> path){ // O(n)
+		// Note: START is not included in the path
+		int s = start.getIndex();
+		int d = dest.getIndex();
+		if(!path_exist(start, dest))	return false;
+		while(s != d){
+			s = P[s][d];
+			path.add( NODES[s] );
+		}				
+		return true;
+	}
+}
 
 
 public class AI {
 // -------------------------------- GlOBAL VARIABLES HERE
 	World my_world; // Local World
-	
+	WARSHALL warshall;
 // -------------------------------------------------------	
+	void initialize(){
+		// Run one time, initialize Global Variables
+		this.warshall = new WARSHALL(this.my_world);
+	}
 	
-	boolean BFS(Node start, Node dest, ArrayList<Node> path){
-		// Note: START is not included in the path
-		
+	boolean BFS(Node start, Node dest, ArrayList<Node> path){// O(V.E) or O(n^2)
+		// Note: START is not included in the path		
 		// initialize: 
 		Node[] AllNodes = my_world.getMap().getNodes();
 		int NSize = AllNodes.length;
@@ -75,14 +130,17 @@ public class AI {
 	public void doTurn(World world) {    	
 	try{
 		my_world = world;
+		if( world.getTurnNumber() <= 0 )
+			initialize(); // Initialize Global Variables, run one time
 	
         Node[] myNodes = world.getMyNodes();
-        Node dest = world.getMap().getNode(13);
+        Node dest = world.getMap().getNode(3);
         
         for (Node source : myNodes) {
         	ArrayList< Node > path = new ArrayList< Node >();
-        	if( BFS(source,dest, path) == true ){
-        		world.moveArmy(source, path.get(0), source.getArmyCount()/2);
+        	//if( BFS(source,dest, path) == true ){
+        	if( warshall.short_path(source, dest, path) == true ){
+        		world.moveArmy(source, path.get(0), source.getArmyCount() - 1);
         	}
         	/*
             Node[] neighbours = source.getNeighbours();
