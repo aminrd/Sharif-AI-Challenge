@@ -19,7 +19,7 @@ public class AI {
 
         Node[] myNodes = world.getMyNodes();
         for (Node source : myNodes) {
-            // get neighbours
+            // get neighbors
             Node[] neighbours = source.getNeighbours();
             if (neighbours.length > 0) {
                 // select a random neighbour
