@@ -96,6 +96,11 @@ class WARSHALL{
 		}				
 		return true;
 	}
+	int next_hop(Node start, Node dest){
+		if(!path_exist(start, dest))	return -1;
+		return 
+				this.P[start.getIndex()][dest.getIndex()];
+	}
 }
 
 class BFS_NODE{
@@ -175,17 +180,20 @@ public class AI {
         	ArrayList< Node > path = new ArrayList< Node >();
         	//if( BFS(source,dest, path) == true ){
         	if( warshall.short_path(source, dest, path) == true ){
-        		world.moveArmy(source, path.get(0), source.getArmyCount() - 1);
+        		//world.moveArmy(source, path.get(0), source.getArmyCount() - 1);
         	}
-        	/*
+        	/**/
             Node[] neighbours = source.getNeighbours();
             if (neighbours.length > 0) {
                 // select a random neighbour
-                Node destination = neighbours[(int) (neighbours.length * Math.random())];
+                //Node destination = neighbours[(int) (neighbours.length * Math.random())];
+            	for(Node ngh: neighbours){
+            		world.moveArmy(source, ngh, 1);
+            	}
                 // move half of the node's army to the neighbor node
-                world.moveArmy(source, destination, source.getArmyCount()/2);
+                //world.moveArmy(source, destination, source.getArmyCount()/2);
             }
-            */
+            /**/
         }
 	}catch(Exception e){}
 	}
