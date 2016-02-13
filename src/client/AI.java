@@ -6,40 +6,6 @@ import java.util.Collections;
 import java.util.LinkedList;
 import java.util.Queue;
 
-class SORT_UTIL{
-	World _world;
-	SORT_UTIL(World input_world){
-		this._world = input_world;
-	}
-	int my_cmp (Node a, Node b, String[] factor){
-		// STRUCTURE: "IF A > B RETURN 0" 
-		if( factor.equals("index") ){
-			if(a.getIndex() > b.getIndex())
-				return 0;
-			else 
-				return 1;
-		}else if(factor.equals("weight")){
-			if( a.getNeighbours().length > b.getNeighbours().length )
-				return 0;
-			else
-				return 1;
-		}
-		return 0;
-	}	
-	void my_sort(ArrayList<Node> list, String[] factor, int ascending){
-		int n = list.size();
-		boolean flag = true;
-		while(flag == true){
-			flag = false;
-			for(int i=0; i<n-1; i++)
-				if( my_cmp(list.get(i), list.get(i+1), factor) != ascending){
-					Collections.swap(list, i, i+1);
-					flag = true;
-				}					
-		}			
-	}
-}
-
 class WARSHALL{
 	int size, MY_MAX;
 	Node[] NODES;
@@ -110,14 +76,35 @@ class BFS_NODE{
 	}
 }
 
+
+class NODE_LIST{
+	Node node; // contains index
+	int type; // 0=Resource, 1=FrontLine, 2=Free, 3=Enemy
+	int min_value;
+	Queue<Integer> q; // For resource management reserved
+	
+	NODE_LIST(){
+		this.min_value = 1;
+		q = new LinkedList<Integer>();
+	}
+}
+
+
 public class AI {
+// -------------------------------- OUR CONSTANTS
+	int DEFAULT_FRONT_MIN = 5;
+	int DEFAULT_RESOURCE_MIN = 1;
 // -------------------------------- GlOBAL VARIABLES HERE
-	World my_world; // Local World
+	World my_world; // Local World	
 	WARSHALL warshall;
+	NODE_LIST [] NodeList;
+	int size; // or N = number of nodes
 // -------------------------------------------------------	
 	void initialize(){
 		// Run one time, initialize Global Variables here
 		this.warshall = new WARSHALL(this.my_world);
+		this.size = my_world.getMap().getNodes().length;
+		NodeList = new NODE_LIST[size];
 	}
 	
 	boolean BFS(Node start, Node dest, ArrayList<Node> path){// O(V.E) or O(n^2)
@@ -166,32 +153,63 @@ public class AI {
 		return true;
 	}
 	
+	void update_node_list(){
+		Node[] allNodes = my_world.getMap().getNodes();
+		for(int i=0; i<this.size; i++){
+			NodeList[i].node = allNodes[i];
+			if( allNodes[i].getOwner() == -1 )
+				NodeList[i].type = 2; // FREE
+			else if( allNodes[i].getOwner() != my_world.getMyID() )
+				NodeList[i].type = 3; // ENEMY
+			else{
+				boolean isResource = true;
+				Node[] NGH = allNodes[i].getNeighbours();
+				for( Node ngh:NGH )
+					if( ngh.getOwner() != my_world.getMyID() ){
+						isResource = false;
+						break;
+					}
+				if( isResource )
+					NodeList[i].type = 0; // RESOURCE
+				else
+					NodeList[i].type = 1; // FRONT LINE
+			}
+			if(NodeList[i].type == 1)
+				NodeList[i].min_value = Math.max(NodeList[i].min_value, DEFAULT_FRONT_MIN);
+			else if(NodeList[i].type == 0){
+				NodeList[i].min_value = Math.max(NodeList[i].min_value, DEFAULT_RESOURCE_MIN);
+			}
+		}
+	}
 	
 	public void doTurn(World world) {    	
 	try{
 		my_world = world;
 		if( world.getTurnNumber() <= 0 )
-			initialize(); // Initialize Global Variables, run one time
+			initialize(); // Initialize Global Variables, run one time		
+		update_node_list(); // Run each cycle
 	
+		
+		
+		
+		
+		
         Node[] myNodes = world.getMyNodes();
-        Node dest = world.getMap().getNode(3);
+        Node dest = world.getMap().getNode(13);
         
         for (Node source : myNodes) {
         	ArrayList< Node > path = new ArrayList< Node >();
         	//if( BFS(source,dest, path) == true ){
         	if( warshall.short_path(source, dest, path) == true ){
-        		//world.moveArmy(source, path.get(0), source.getArmyCount() - 1);
+        		world.moveArmy(source, path.get(0), source.getArmyCount() - 1);
         	}
-        	/**/
+        	/**
             Node[] neighbours = source.getNeighbours();
             if (neighbours.length > 0) {
                 // select a random neighbour
-                //Node destination = neighbours[(int) (neighbours.length * Math.random())];
-            	for(Node ngh: neighbours){
-            		world.moveArmy(source, ngh, 1);
-            	}
+                Node destination = neighbours[(int) (neighbours.length * Math.random())];
                 // move half of the node's army to the neighbor node
-                //world.moveArmy(source, destination, source.getArmyCount()/2);
+                world.moveArmy(source, destination, source.getArmyCount()/2);
             }
             /**/
         }
