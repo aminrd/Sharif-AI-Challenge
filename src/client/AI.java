@@ -87,6 +87,15 @@ class NODE_LIST{
 		this.min_value = 1;
 		q = new LinkedList<Integer>();
 	}
+	int circulate_queue_poll(){
+		int a = -1;
+		if( q.size() > 0 ){
+			a = q.poll();
+			q.add(a);
+		}
+		return a; 
+	}
+
 }
 
 
@@ -155,8 +164,9 @@ public class AI {
 	
 	void update_node_list(){
 		Node[] allNodes = my_world.getMap().getNodes();
-		for(int i=0; i<this.size; i++){
-			NodeList[i].node = allNodes[i];
+		for(int j=0; j<this.size; j++){
+			int i = allNodes[j].getIndex();
+			NodeList[i].node = allNodes[j];
 			if( allNodes[i].getOwner() == -1 )
 				NodeList[i].type = 2; // FREE
 			else if( allNodes[i].getOwner() != my_world.getMyID() )
