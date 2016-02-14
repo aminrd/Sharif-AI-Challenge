@@ -1,10 +1,9 @@
 package client;
-import client.model.Node;
-
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.LinkedList;
 import java.util.Queue;
+
+import client.model.Node;
 
 class WARSHALL{
 	int size, MY_MAX;
@@ -242,7 +241,7 @@ public class AI {
 		}
 	}
 	
-	void Resource_Manage(){
+	void Resource_Manager(){
 		
 	}
 	
