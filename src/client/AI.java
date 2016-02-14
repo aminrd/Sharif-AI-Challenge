@@ -193,11 +193,12 @@ public class AI {
 		return true;
 	}
 	
-	void get_nodes_index_by_type(int _type, ArrayList<Integer> nodes_index){		
+	void get_nodes_index_by_type(int _type, ArrayList<Integer> nodes_index){	// don't run this function before "update_node_list" 		
 		for(int i=0; i<NodeList.length; i++)
 			if( NodeList[i].type == _type)
 				nodes_index.add(i);
 	}
+		
 	
 	void update_node_list(){
 		ArrayList<Node> FNodes = new ArrayList<Node>();
@@ -235,31 +236,33 @@ public class AI {
 		}
 	}
 	
+	void Frontier_Manager(){
+		ArrayList<Integer> frontiers = new ArrayList<Integer>();
+		get_nodes_index_by_type(1, frontiers);
+		for(Integer i:frontiers){		
+			Node source = NodeList[i].node;
+            Node[] neighbours = source.getNeighbours();
+            for(Node destination:neighbours){
+            	if(NodeList[destination.getIndex()].type == 2 || NodeList[destination.getIndex()].type == 3){
+            		my_world.moveArmy(source, destination, source.getArmyCount());            		
+            	}
+            }            			
+		}
+	}
+	
+	void Resource_Manager(){
+		
+	}
+	
 	public void doTurn(World world) {    	
 	try{
 		my_world = world;
 		if( world.getTurnNumber() <= 0 )
 			initialize(); // Initialize Global Variables, run one time		
-		update_node_list(); // Run each cycle
-        Node[] myNodes = world.getMyNodes();
-        Node dest = world.getMap().getNode(13);
-        
-        for (Node source : myNodes) {
-        	ArrayList< Node > path = new ArrayList< Node >();
-        	//if( BFS(source,dest, path) == true ){
-        	if( warshall.short_path(source, dest, path) == true ){
-        		world.moveArmy(source, path.get(0), source.getArmyCount() - 1);
-        	}
-        	/**
-            Node[] neighbours = source.getNeighbours();
-            if (neighbours.length > 0) {
-                // select a random neighbour
-                Node destination = neighbours[(int) (neighbours.length * Math.random())];
-                // move half of the node's army to the neighbor node
-                world.moveArmy(source, destination, source.getArmyCount()/2);
-            }
-         	/**/  
-        }
+		update_node_list(); // Run each cycle               
+
+        Resource_Manager();
+        Frontier_Manager();
 	}catch(Exception e){}
 	}
 }
