@@ -3,6 +3,7 @@ import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.Queue;
 
+
 import client.model.Node;
 
 class WARSHALL{
@@ -129,6 +130,9 @@ public class AI {
 // -------------------------------- OUR CONSTANTS
 	int DEFAULT_FRONT_MIN = 5;
 	int DEFAULT_RESOURCE_MIN = 1;
+	int CLOSE_ENEMY_FL_RM_MIN = 2; 	// How close is FL to the enemy (MIN)
+	int CLOSE_ENEMY_FL_RM_AVG = 1; 	// How close is FL to the enemy (AVG)
+	int EMPTINESS_FL_RM  = 5; 		// How empty is the FL
 // -------------------------------- GlOBAL VARIABLES HERE
 	World my_world; // Local World	
 	WARSHALL warshall;
@@ -242,8 +246,63 @@ public class AI {
 		}
 	}
 	
-	void Resource_Manager(){
+	int FLine_Priority_for_RM(int index){
+		int point = 0;
+		Node fl = NodeList[index].node;
+		ArrayList<Integer> enemy_ix = new ArrayList<Integer>();
+		get_nodes_index_by_type(3, enemy_ix);
 		
+		ArrayList<Node> enemy = new ArrayList<Node>();
+		for(Integer e:enemy_ix)
+			enemy.add(NodeList[e].node);
+		
+		int avg_dist = warshall.avg_distance_list(fl, enemy);
+		int min_dist = warshall.min_distance_list(fl, enemy);
+		int req = Math.max(0, NodeList[index].min_value - fl.getArmyCount());
+		
+		point -= avg_dist * CLOSE_ENEMY_FL_RM_AVG;
+		point -= min_dist * CLOSE_ENEMY_FL_RM_MIN;
+		point += req * EMPTINESS_FL_RM; 
+		
+		return point;
+	}
+	
+	void Resource_Manager(){
+		ArrayList<Integer> rlist = new ArrayList<Integer>();
+		get_nodes_index_by_type(0, rlist);
+		if(rlist.size() <= 0)
+			return;
+		
+		// set Minimum Value: 
+		for(Integer rindex:rlist){
+			NodeList[rindex].min_value = NodeList[rindex].node.getNeighbours().length;
+			// TODO Find different features to set the minimum value
+		}
+		
+		// Send Army: 
+		for(Integer r:rlist){
+			int D2F = warshall.D[ NodeList[r].q.get(0) ][r];
+			if( D2F <= 1 ){
+				int [] Priority = new int[ NodeList[r].q.size() ];
+				for(int k=0; k<Priority.length; k++)
+					Priority[k] = FLine_Priority_for_RM( NodeList[r].q.get(k) );
+				
+				int max_pr = Priority[0];
+				int dest   = NodeList[r].q.get(0);
+				for(int k=1; k<Priority.length; k++)
+					if( max_pr < Priority[k] ){
+						max_pr = Priority[k];
+						dest   = NodeList[r].q.get(k);
+					}
+				int count_value = NodeList[r].node.getArmyCount() - NodeList[r].min_value;
+				if( count_value > 0 )
+					my_world.moveArmy(r, dest, count_value);				
+			}else{
+				int count_value = NodeList[r].node.getArmyCount() - NodeList[r].min_value;
+				if( count_value > 0 )
+					my_world.moveArmy(r, NodeList[r].circulate_queue_poll(), count_value);
+			}
+		}
 	}
 	
 	void Frontier_Manager(){
@@ -265,7 +324,7 @@ public class AI {
 		my_world = world;
 		if( world.getTurnNumber() <= 0 )
 			initialize(); // Initialize Global Variables, run one time		
-		update_node_list(); // Run each cycle               
+		update_node_list(); // Run each cycle
 
         Resource_Manager();
         Frontier_Manager();
