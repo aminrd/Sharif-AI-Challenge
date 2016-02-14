@@ -46,14 +46,14 @@ class WARSHALL{
 						P[i][j] = P[i][k];
 					}
 	}
-	int min_distance_list (Node from, Node[] list){
+	int min_distance_list (Node from, ArrayList<Node> list){
 		int MIN = this.MY_MAX;
 		for( Node e:list )
 			if( D[from.getIndex()][e.getIndex()] < MIN )
 				MIN = D[from.getIndex()][e.getIndex()];
 		return MIN;
 	}
-	int avg_distance_list (Node from, Node[] list){
+	int avg_distance_list (Node from, ArrayList<Node> list){
 		int AVG = 0;
 		int cnt = 0;
 		for( Node e:list )
@@ -98,28 +98,26 @@ class NODE_LIST{
 	public Node node; // contains index
 	public int type; // 0=Resource, 1=FrontLine, 2=Free, 3=Enemy
 	public int min_value;
-	public Queue<Integer> q; // For resource management reserved
+	public ArrayList<Integer> q; // For resource management reserved
 	
 	NODE_LIST(){
 		this.min_value = 1;
-		q = new LinkedList<Integer>();
+		q = new ArrayList<Integer>();
 	}
 	int circulate_queue_poll(){
 		int a = -1;
 		if( q.size() > 0 ){
-			a = q.poll();
+			a = q.get(0);
+			q.remove(0);
 			q.add(a);
 		}
 		return a; 
 	}
 	void my_merge(ArrayList<Integer> newF){
-		Queue<Integer> newQ = new LinkedList<Integer>();
-		int p;
-		while( q.size() > 0 ){
-			p = q.poll();
-			if( newF.contains(p) )
-				newQ.add(p);
-		}
+		ArrayList<Integer> newQ = new ArrayList<Integer>();
+		for(int i=0; i<q.size(); i++)
+			if(newF.contains(q.get(i)))
+				newQ.add(q.get(i));
 		for(Integer e:newF)
 			if( !newQ.contains(e))
 				newQ.add(e);
@@ -227,6 +225,19 @@ public class AI {
 				RNodes.add(NodeList[i].node);
 			}
 		}
+
+		for(Node r:RNodes){
+			int minF = warshall.min_distance_list(r, FNodes);
+			ArrayList<Integer> newQ = new ArrayList<Integer>();
+			for(Node f:FNodes)
+				if(warshall.D[r.getIndex()][f.getIndex()] == minF)
+					newQ.add(f.getIndex());
+			NodeList[r.getIndex()].my_merge(newQ);
+		}
+	}
+	
+	void Resource_Manage(){
+		
 	}
 	
 	public void doTurn(World world) {    	
