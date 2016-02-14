@@ -191,6 +191,12 @@ public class AI {
 		return true;
 	}
 	
+	void get_nodes_index_by_type(int _type, ArrayList<Integer> nodes_index){		
+		for(int i=0; i<NodeList.length; i++)
+			if( NodeList[i].type == _type)
+				nodes_index.add(i);
+	}
+	
 	void update_node_list(){
 		ArrayList<Node> FNodes = new ArrayList<Node>();
 		ArrayList<Node> RNodes = new ArrayList<Node>();
@@ -246,8 +252,6 @@ public class AI {
 		if( world.getTurnNumber() <= 0 )
 			initialize(); // Initialize Global Variables, run one time		
 		update_node_list(); // Run each cycle
-		
-		
         Node[] myNodes = world.getMyNodes();
         Node dest = world.getMap().getNode(13);
         
@@ -265,7 +269,7 @@ public class AI {
                 // move half of the node's army to the neighbor node
                 world.moveArmy(source, destination, source.getArmyCount()/2);
             }
-            /**/
+         	/**/  
         }
 	}catch(Exception e){}
 	}
