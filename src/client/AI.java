@@ -260,10 +260,6 @@ public class AI {
 		}
 	}
 	
-	void Resource_Manager(){
-		
-	}
-	
 	public void doTurn(World world) {    	
 	try{
 		my_world = world;
