@@ -46,6 +46,23 @@ class WARSHALL{
 						P[i][j] = P[i][k];
 					}
 	}
+	int min_distance_list (Node from, Node[] list){
+		int MIN = this.MY_MAX;
+		for( Node e:list )
+			if( D[from.getIndex()][e.getIndex()] < MIN )
+				MIN = D[from.getIndex()][e.getIndex()];
+		return MIN;
+	}
+	int avg_distance_list (Node from, Node[] list){
+		int AVG = 0;
+		int cnt = 0;
+		for( Node e:list )
+			if(D[from.getIndex()][e.getIndex()] != this.MY_MAX){
+				cnt++;
+				AVG += D[from.getIndex()][e.getIndex()];
+			}
+		return AVG/cnt;
+	}
 	boolean path_exist(Node start, Node dest){
 		if(D[start.getIndex()][dest.getIndex()] == MY_MAX)
 			return false;
@@ -78,7 +95,7 @@ class BFS_NODE{
 
 
 class NODE_LIST{
-	Node node; // contains index
+	public Node node; // contains index
 	public int type; // 0=Resource, 1=FrontLine, 2=Free, 3=Enemy
 	public int min_value;
 	public Queue<Integer> q; // For resource management reserved
@@ -106,12 +123,7 @@ class NODE_LIST{
 		for(Integer e:newF)
 			if( !newQ.contains(e))
 				newQ.add(e);
-		q = newQ;
-		while( q.size() > 0 ){
-			p = q.poll();
-			System.out.print(p + " ");
-		}
-		System.out.println();
+		this.q = newQ;
 	}
 }
 
