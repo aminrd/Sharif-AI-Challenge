@@ -79,9 +79,9 @@ class BFS_NODE{
 
 class NODE_LIST{
 	Node node; // contains index
-	int type; // 0=Resource, 1=FrontLine, 2=Free, 3=Enemy
-	int min_value;
-	Queue<Integer> q; // For resource management reserved
+	public int type; // 0=Resource, 1=FrontLine, 2=Free, 3=Enemy
+	public int min_value;
+	public Queue<Integer> q; // For resource management reserved
 	
 	NODE_LIST(){
 		this.min_value = 1;
@@ -95,7 +95,24 @@ class NODE_LIST{
 		}
 		return a; 
 	}
-
+	void my_merge(ArrayList<Integer> newF){
+		Queue<Integer> newQ = new LinkedList<Integer>();
+		int p;
+		while( q.size() > 0 ){
+			p = q.poll();
+			if( newF.contains(p) )
+				newQ.add(p);
+		}
+		for(Integer e:newF)
+			if( !newQ.contains(e))
+				newQ.add(e);
+		q = newQ;
+		while( q.size() > 0 ){
+			p = q.poll();
+			System.out.print(p + " ");
+		}
+		System.out.println();
+	}
 }
 
 
@@ -112,8 +129,10 @@ public class AI {
 	void initialize(){
 		// Run one time, initialize Global Variables here
 		this.warshall = new WARSHALL(this.my_world);
-		this.size = my_world.getMap().getNodes().length;
+		size = my_world.getMap().getNodes().length;
 		NodeList = new NODE_LIST[size];
+		for(int i=0; i<size; i++)
+			NodeList[i]= new NODE_LIST();
 	}
 	
 	boolean BFS(Node start, Node dest, ArrayList<Node> path){// O(V.E) or O(n^2)
@@ -163,31 +182,37 @@ public class AI {
 	}
 	
 	void update_node_list(){
+		ArrayList<Node> FNodes = new ArrayList<Node>();
+		ArrayList<Node> RNodes = new ArrayList<Node>();
+		
 		Node[] allNodes = my_world.getMap().getNodes();
-		for(int j=0; j<this.size; j++){
+		for(int j=0; j<allNodes.length; j++){
 			int i = allNodes[j].getIndex();
-			NodeList[i].node = allNodes[j];
-			if( allNodes[i].getOwner() == -1 )
+			NodeList[i].node = my_world.getMap().getNode(i);
+			
+			if( allNodes[j].getOwner() < 0 )
 				NodeList[i].type = 2; // FREE
-			else if( allNodes[i].getOwner() != my_world.getMyID() )
+			else if( allNodes[j].getOwner() != my_world.getMyID() )
 				NodeList[i].type = 3; // ENEMY
 			else{
 				boolean isResource = true;
-				Node[] NGH = allNodes[i].getNeighbours();
+				Node[] NGH = allNodes[j].getNeighbours();
 				for( Node ngh:NGH )
-					if( ngh.getOwner() != my_world.getMyID() ){
+					if( ngh.getOwner() != my_world.getMyID() ){			
 						isResource = false;
 						break;
 					}
-				if( isResource )
+				if( isResource == true)
 					NodeList[i].type = 0; // RESOURCE
 				else
 					NodeList[i].type = 1; // FRONT LINE
 			}
-			if(NodeList[i].type == 1)
+			if(NodeList[i].type == 1){
 				NodeList[i].min_value = Math.max(NodeList[i].min_value, DEFAULT_FRONT_MIN);
-			else if(NodeList[i].type == 0){
+				FNodes.add(NodeList[i].node);
+			}else if(NodeList[i].type == 0){
 				NodeList[i].min_value = Math.max(NodeList[i].min_value, DEFAULT_RESOURCE_MIN);
+				RNodes.add(NodeList[i].node);
 			}
 		}
 	}
@@ -198,10 +223,6 @@ public class AI {
 		if( world.getTurnNumber() <= 0 )
 			initialize(); // Initialize Global Variables, run one time		
 		update_node_list(); // Run each cycle
-	
-		
-		
-		
 		
 		
         Node[] myNodes = world.getMyNodes();
