@@ -256,25 +256,30 @@ public class AI {
 		return point;
 	}
 	
-	boolean is_path_free (Node in, int BlockType, int GoalType){
+	boolean is_path_free (Node in, int BlockType){
 		boolean [] mark = new boolean[this.size];
 		mark[ in.getIndex() ] = true;
 		Queue<Integer> q = new LinkedList<Integer>();
 		q.add(in.getIndex());
 		int head;
+			
+		if( in.getOwner() >=0 && in.getOwner() != BlockType)
+			return false;
 		
 		while( q.size() > 0 ){
 			head = q.poll();
+			
 			Node[] NGH = NodeList[head].node.getNeighbours();
-			for( Node ngh: NGH )
-				if( NodeList[ngh.getIndex()].type == GoalType )
-					return false;
-				else if( NodeList[ngh.getIndex()].type == BlockType )
+			for( Node ngh: NGH ){
+				if( NodeList[ngh.getIndex()].node.getOwner() == BlockType )
 					continue;
+				if( NodeList[ngh.getIndex()].node.getOwner() >=0)
+					return false;
 				else if( !mark[ngh.getIndex()] ){
 					mark[ngh.getIndex()] = true;
 					q.add(ngh.getIndex());
 				}
+			}
 		}		
 		return true;
 	}
@@ -342,7 +347,10 @@ public class AI {
             		}
             	}
             }
-            my_world.moveArmy(source, final_des, source.getArmyCount());
+            if( is_path_free(final_des, my_world.getMyID()) )
+            	my_world.moveArmy(source, final_des, 1);
+            else
+            	my_world.moveArmy(source, final_des, source.getArmyCount());
 		}
 	}
 	
