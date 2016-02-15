@@ -127,9 +127,9 @@ public class AI {
 // -------------------------------- OUR CONSTANTS
 	int DEFAULT_FRONT_MIN = 5;
 	int DEFAULT_RESOURCE_MIN = 1;
-	int CLOSE_ENEMY_FL_RM_MIN = 2; 	// How close is FL to the enemy (MIN)
-	int CLOSE_ENEMY_FL_RM_AVG = 1; 	// How close is FL to the enemy (AVG)
-	int EMPTINESS_FL_RM  = 5; 		// How empty is the FL
+	int CLOSE_ENEMY_FL_RM_MIN = 4; 	// How close is FL to the enemy (MIN)
+	int CLOSE_ENEMY_FL_RM_AVG = 2; 	// How close is FL to the enemy (AVG)
+	int EMPTINESS_FL_RM  = 3; 		// How empty is the FL
 	int VERTEX_DEGREE = 1;
 	int ENEMY_NEIGHBOUR = 6;
 // -------------------------------- GlOBAL VARIABLES HERE
@@ -251,7 +251,7 @@ public class AI {
 		
 		point -= avg_dist * CLOSE_ENEMY_FL_RM_AVG;
 		point -= min_dist * CLOSE_ENEMY_FL_RM_MIN;
-		point += req * EMPTINESS_FL_RM; 
+		point -= req * EMPTINESS_FL_RM; 
 		
 		return point;
 	}
@@ -300,7 +300,7 @@ public class AI {
 		// Send Army: 
 		for(Integer r:rlist){
 			int D2F = warshall.D[ NodeList[r].q.get(0) ][r];
-			if( D2F <= 1 ){
+			if( D2F <= 3 ){ // Can be changed
 				int [] Priority = new int[ NodeList[r].q.size() ];
 				for(int k=0; k<Priority.length; k++)
 					Priority[k] = FLine_Priority_for_RM( NodeList[r].q.get(k), enemy );
@@ -321,6 +321,34 @@ public class AI {
 			}
 		}
 	}
+	
+	void find_depended_FL_nodes(Node fl, ArrayList<Node> dep_list){
+		// Input: One Front Line Node
+		// Output(ArrayList): depended FrontLine nodes to fl including "fl"
+		boolean [] mark = new boolean[this.size];
+		Queue<Node> q = new LinkedList<Node>();
+		mark[ fl.getIndex() ] = true;
+		q.add(fl);
+		
+		Node head;
+		while(q.size() > 0){
+			head = q.poll();
+			dep_list.add(head);
+			
+			Node[] NGH = head.getNeighbours();
+			for(Node ngh:NGH)
+				if( !mark[ngh.getIndex()] &&  (ngh.getOwner() != my_world.getMyID()) ){
+					mark[ngh.getIndex()] = true;
+					Node[] NGH2 = ngh.getNeighbours();
+					for(Node ngh2: NGH2)
+						if( (NodeList[ngh2.getIndex()].type == 1) &&  !mark[ngh2.getIndex()] ){
+							q.add(ngh2);
+							mark[ngh2.getIndex()] = true;
+						}
+				}					
+		}
+	}
+	
 	
 	int GetScore(Node src, Node des){
 		int _score = 0;
@@ -360,9 +388,10 @@ public class AI {
 		if( world.getTurnNumber() <= 0 )
 			initialize(); // Initialize Global Variables, run one time		
 		update_node_list(); // Run each cycle
-
+		
         Resource_Manager();
         Frontier_Manager();
+        
 	}catch(Exception e){}
 	}
 }
