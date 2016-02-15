@@ -3,7 +3,6 @@ import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.Queue;
 
-
 import client.model.Node;
 
 class WARSHALL{
@@ -296,11 +295,13 @@ public class AI {
 					}
 				int count_value = NodeList[r].node.getArmyCount() - NodeList[r].min_value;
 				if( count_value > 0 )
-					my_world.moveArmy(r, dest, count_value);				
+					my_world.moveArmy(r, warshall.next_hop(NodeList[r].node, NodeList[dest].node), count_value);				
 			}else{
 				int count_value = NodeList[r].node.getArmyCount() - NodeList[r].min_value;
-				if( count_value > 0 )
-					my_world.moveArmy(r, NodeList[r].circulate_queue_poll(), count_value);
+				if( count_value > 0 ){
+					int dest = NodeList[r].circulate_queue_poll();
+					my_world.moveArmy(r, warshall.next_hop(NodeList[r].node, NodeList[dest].node), count_value);
+				}
 			}
 		}
 	}
