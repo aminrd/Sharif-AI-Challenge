@@ -132,6 +132,8 @@ public class AI {
 	int CLOSE_ENEMY_FL_RM_MIN = 2; 	// How close is FL to the enemy (MIN)
 	int CLOSE_ENEMY_FL_RM_AVG = 1; 	// How close is FL to the enemy (AVG)
 	int EMPTINESS_FL_RM  = 5; 		// How empty is the FL
+	int VERTEX_DEGREE = 1;
+	int ENEMY_NEIGHBOUR = 6;
 // -------------------------------- GlOBAL VARIABLES HERE
 	World my_world; // Local World	
 	WARSHALL warshall;
@@ -198,8 +200,7 @@ public class AI {
 			if( NodeList[i].type == _type)
 				nodes_index.add(i);
 	}
-		
-	
+			
 	void update_node_list(){
 		ArrayList<Node> FNodes = new ArrayList<Node>();
 		ArrayList<Node> RNodes = new ArrayList<Node>();
@@ -306,17 +307,32 @@ public class AI {
 		}
 	}
 	
+	int GetScore(Node src, Node des){
+		int _score = 0;
+		Node[] neighbours = des.getNeighbours();
+		_score += neighbours.length * VERTEX_DEGREE;
+		if( NodeList[des.getIndex()].type == 3 )
+			_score += ENEMY_NEIGHBOUR;	
+		return _score;
+	}
+	
 	void Frontier_Manager(){
 		ArrayList<Integer> frontiers = new ArrayList<Integer>();
 		get_nodes_index_by_type(1, frontiers);
 		for(Integer i:frontiers){		
 			Node source = NodeList[i].node;
             Node[] neighbours = source.getNeighbours();
-            for(Node destination:neighbours){
-            	if(NodeList[destination.getIndex()].type == 2 || NodeList[destination.getIndex()].type == 3){
-            		my_world.moveArmy(source, destination, source.getArmyCount());            		
+            Node final_des = null;
+            int max = 0;
+            for(Node des:neighbours){
+            	if(NodeList[des.getIndex()].type > 1){
+            		if ( max < GetScore(source, des)){
+            			max = GetScore(source, des);
+            			final_des = des;
+            		}
             	}
-            }            			
+            }
+            my_world.moveArmy(source, final_des, source.getArmyCount());
 		}
 	}
 	
