@@ -96,11 +96,9 @@ class BFS_NODE{
 class NODE_LIST{
 	public Node node; // contains index
 	public int type; // 0=Resource, 1=FrontLine, 2=Free, 3=Enemy
-	public int min_value;
 	public ArrayList<Integer> q; // For resource management reserved
 	
 	NODE_LIST(){
-		this.min_value = 1;
 		q = new ArrayList<Integer>();
 	}
 	int circulate_queue_poll(){
@@ -226,13 +224,10 @@ public class AI {
 				else
 					NodeList[i].type = 1; // FRONT LINE
 			}
-			if(NodeList[i].type == 1){
-				NodeList[i].min_value = Math.max(NodeList[i].min_value, DEFAULT_FRONT_MIN);
+			if(NodeList[i].type == 1)
 				FNodes.add(NodeList[i].node);
-			}else if(NodeList[i].type == 0){
-				NodeList[i].min_value = Math.max(NodeList[i].min_value, DEFAULT_RESOURCE_MIN);
+			else if(NodeList[i].type == 0)
 				RNodes.add(NodeList[i].node);
-			}
 		}
 
 		for(Node r:RNodes){
@@ -245,19 +240,13 @@ public class AI {
 		}
 	}
 	
-	int FLine_Priority_for_RM(int index){
-		int point = 0;
+	int FLine_Priority_for_RM(int index, ArrayList<Node> enemy){
+		int point = 500;
 		Node fl = NodeList[index].node;
-		ArrayList<Integer> enemy_ix = new ArrayList<Integer>();
-		get_nodes_index_by_type(3, enemy_ix);
-		
-		ArrayList<Node> enemy = new ArrayList<Node>();
-		for(Integer e:enemy_ix)
-			enemy.add(NodeList[e].node);
 		
 		int avg_dist = warshall.avg_distance_list(fl, enemy);
 		int min_dist = warshall.min_distance_list(fl, enemy);
-		int req = Math.max(0, NodeList[index].min_value - fl.getArmyCount());
+		int req = fl.getArmyCount();
 		
 		point -= avg_dist * CLOSE_ENEMY_FL_RM_AVG;
 		point -= min_dist * CLOSE_ENEMY_FL_RM_MIN;
@@ -271,12 +260,13 @@ public class AI {
 		get_nodes_index_by_type(0, rlist);
 		if(rlist.size() <= 0)
 			return;
+
+		ArrayList<Integer> enemy_ix = new ArrayList<Integer>();
+		get_nodes_index_by_type(3, enemy_ix);
+		ArrayList<Node> enemy = new ArrayList<Node>();
+		for(Integer e:enemy_ix)
+			enemy.add(NodeList[e].node);		
 		
-		// set Minimum Value: 
-		for(Integer rindex:rlist){
-			NodeList[rindex].min_value = NodeList[rindex].node.getNeighbours().length;
-			// TODO Find different features to set the minimum value
-		}
 		
 		// Send Army: 
 		for(Integer r:rlist){
@@ -284,7 +274,7 @@ public class AI {
 			if( D2F <= 1 ){
 				int [] Priority = new int[ NodeList[r].q.size() ];
 				for(int k=0; k<Priority.length; k++)
-					Priority[k] = FLine_Priority_for_RM( NodeList[r].q.get(k) );
+					Priority[k] = FLine_Priority_for_RM( NodeList[r].q.get(k), enemy );
 				
 				int max_pr = Priority[0];
 				int dest   = NodeList[r].q.get(0);
@@ -293,15 +283,12 @@ public class AI {
 						max_pr = Priority[k];
 						dest   = NodeList[r].q.get(k);
 					}
-				int count_value = NodeList[r].node.getArmyCount() - NodeList[r].min_value;
-				if( count_value > 0 )
-					my_world.moveArmy(r, warshall.next_hop(NodeList[r].node, NodeList[dest].node), count_value);				
+				int count_value = NodeList[r].node.getArmyCount();
+				my_world.moveArmy(r, warshall.next_hop(NodeList[r].node, NodeList[dest].node), count_value);				
 			}else{
-				int count_value = NodeList[r].node.getArmyCount() - NodeList[r].min_value;
-				if( count_value > 0 ){
-					int dest = NodeList[r].circulate_queue_poll();
-					my_world.moveArmy(r, warshall.next_hop(NodeList[r].node, NodeList[dest].node), count_value);
-				}
+				int count_value = NodeList[r].node.getArmyCount();
+				int dest = NodeList[r].circulate_queue_poll();
+				my_world.moveArmy(r, warshall.next_hop(NodeList[r].node, NodeList[dest].node), count_value);
 			}
 		}
 	}
