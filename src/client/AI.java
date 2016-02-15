@@ -255,6 +255,29 @@ public class AI {
 		return point;
 	}
 	
+	boolean is_path_free (Node in, int BlockType, int GoalType){
+		boolean [] mark = new boolean[this.size];
+		mark[ in.getIndex() ] = true;
+		Queue<Integer> q = new LinkedList<Integer>();
+		q.add(in.getIndex());
+		int head;
+		
+		while( q.size() > 0 ){
+			head = q.poll();
+			Node[] NGH = NodeList[head].node.getNeighbours();
+			for( Node ngh: NGH )
+				if( NodeList[ngh.getIndex()].type == GoalType )
+					return false;
+				else if( NodeList[ngh.getIndex()].type == BlockType )
+					continue;
+				else if( !mark[ngh.getIndex()] ){
+					mark[ngh.getIndex()] = true;
+					q.add(ngh.getIndex());
+				}
+		}		
+		return true;
+	}
+	
 	void Resource_Manager(){
 		ArrayList<Integer> rlist = new ArrayList<Integer>();
 		get_nodes_index_by_type(0, rlist);
