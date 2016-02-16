@@ -97,9 +97,11 @@ class NODE_LIST{
 	public Node node; // contains index
 	public int type; // 0=Resource, 1=FrontLine, 2=Free, 3=Enemy
 	public ArrayList<Integer> q; // For resource management reserved
+	public boolean underattack;
 	
 	NODE_LIST(){
 		q = new ArrayList<Integer>();
+		underattack = false;
 	}
 	int circulate_queue_poll(){
 		int a = -1;
@@ -130,8 +132,13 @@ public class AI {
 	int CLOSE_ENEMY_FL_RM_MIN = 2; 	// How close is FL to the enemy (MIN)
 	int CLOSE_ENEMY_FL_RM_AVG = 1; 	// How close is FL to the enemy (AVG)
 	int EMPTINESS_FL_RM  = 5; 		// How empty is the FL
-	int VERTEX_DEGREE = 1;
+
+	//-------------------- rating attacking nodes
+	int VERTEX_DEGREE = 1;	
 	int ENEMY_NEIGHBOUR = 6;
+	int ENEMY_POWER = 5;	// How is the difference between power of us and destination enemy
+	int UNDER_ATTACK = 1;	//	destination is under attack by another monster
+	double ENEMY_EXISTENCE = 0.02;
 // -------------------------------- GlOBAL VARIABLES HERE
 	World my_world; // Local World	
 	WARSHALL warshall;
@@ -325,13 +332,28 @@ public class AI {
 	int GetScore(Node src, Node des){
 		int _score = 0;
 		Node[] neighbours = des.getNeighbours();
-		_score += neighbours.length * VERTEX_DEGREE;
-		if( NodeList[des.getIndex()].type == 3 )
-			_score += ENEMY_NEIGHBOUR;	
+		_score += neighbours.length * VERTEX_DEGREE;	// Degree point
+				
+		//------------------------- priority base on our power and enemy power
+		int my_power;
+		if( src.getArmyCount() <= 10)
+			my_power = 0;
+		else if ( src.getArmyCount() <= 30)
+			my_power = 1;
+		else
+			my_power = 2;
+		
+		if( des.getOwner() != my_world.getMyID())
+			_score += (my_power - des.getArmyCount() + 1) * ENEMY_POWER; 
+				
+		//-------------------- under attack priority
+		if( NodeList[des.getIndex()].underattack)
+			_score -= UNDER_ATTACK;
+		
 		return _score;
-	}
+	}	
 	
-	void Frontier_Manager(){
+	void Frontier_Manager_Saeed(){
 		ArrayList<Integer> frontiers = new ArrayList<Integer>();
 		get_nodes_index_by_type(1, frontiers);
 		for(Integer i:frontiers){		
@@ -339,6 +361,8 @@ public class AI {
             Node[] neighbours = source.getNeighbours();
             Node final_des = null;
             int max = 0;
+            int has_enemy = 0;
+            //----------------------- Get Score of each node
             for(Node des:neighbours){
             	if(NodeList[des.getIndex()].type > 1){
             		if ( max < GetScore(source, des)){
@@ -346,11 +370,32 @@ public class AI {
             			final_des = des;
             		}
             	}
+            	if(NodeList[des.getIndex()].type == 3)
+            		has_enemy++;
             }
+            
+            if( final_des == null)	// no appropriate destination found
+            	continue;
+            
+            int armycount = 0;
+            //-------------------- decrease movement power to free path
             if( is_path_free(final_des, my_world.getMyID()) )
-            	my_world.moveArmy(source, final_des, 1);
-            else
-            	my_world.moveArmy(source, final_des, source.getArmyCount());
+            	armycount = 1;
+            else{
+            	armycount = source.getArmyCount();
+            	//----- decrease army count based on enemy count
+            	armycount -= has_enemy *  armycount * ENEMY_EXISTENCE;
+            	
+            	//------ decrease amry count based on enemy count
+            	if( armycount > 50)
+            		armycount -= armycount/10;
+            	//if( has_enemy > 0 && final_des.getOwner() == -1)
+            		//armycount = 1;            	
+            }
+            
+            
+            my_world.moveArmy(source, final_des, armycount);
+            NodeList[final_des.getIndex()].underattack = true;
 		}
 	}
 	
@@ -362,7 +407,7 @@ public class AI {
 		update_node_list(); // Run each cycle
 
         Resource_Manager();
-        Frontier_Manager();
+        Frontier_Manager_Saeed();
 	}catch(Exception e){}
 	}
 }
