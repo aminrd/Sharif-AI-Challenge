@@ -1,5 +1,6 @@
 package client;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.LinkedList;
 import java.util.Queue;
 
@@ -129,9 +130,10 @@ public class AI {
 // -------------------------------- OUR CONSTANTS
 	int DEFAULT_FRONT_MIN = 5;
 	int DEFAULT_RESOURCE_MIN = 1;
-	int CLOSE_ENEMY_FL_RM_MIN = 2; 	// How close is FL to the enemy (MIN)
-	int CLOSE_ENEMY_FL_RM_AVG = 1; 	// How close is FL to the enemy (AVG)
-	int EMPTINESS_FL_RM  = 5; 		// How empty is the FL
+	int CLOSE_ENEMY_FL_RM_MIN = 15; // How close is FL to the enemy (MIN)
+	int CLOSE_ENEMY_FL_RM_AVG = 2; 	// How close is FL to the enemy (AVG)
+	int EMPTINESS_FL_RM  = 3; 		// How empty is the FL
+	int RESOURCE_THRESHOLD = 1;
 
 	//-------------------- rating attacking nodes
 	int VERTEX_DEGREE = 1;	
@@ -240,17 +242,32 @@ public class AI {
 
 		for(Node r:RNodes){
 			int minF = warshall.min_distance_list(r, FNodes);
+			minF = Math.max(minF, RESOURCE_THRESHOLD);
+			
 			ArrayList<Integer> newQ = new ArrayList<Integer>();
 			for(Node f:FNodes)
-				if(warshall.D[r.getIndex()][f.getIndex()] == minF)
+				if(warshall.D[r.getIndex()][f.getIndex()] <= minF)
 					newQ.add(f.getIndex());
 			NodeList[r.getIndex()].my_merge(newQ);
 		}
 	}
 	
+	boolean is_FL_on_Free_Path (Node fl){
+		if( count_options_for_FL(fl) <= 1 ){
+			Node[] NGH = fl.getNeighbours();
+			for(Node ngh: NGH)
+				if( ngh.getOwner() <0 && is_path_free(ngh, my_world.getMyID()) )
+					return true;
+		}		
+		return false;
+	}
+	
 	int FLine_Priority_for_RM(int index, ArrayList<Node> enemy){
 		int point = 500;
 		Node fl = NodeList[index].node;
+		
+		if( is_FL_on_Free_Path(fl) )
+			point -= 1000;
 		
 		int avg_dist = warshall.avg_distance_list(fl, enemy);
 		int min_dist = warshall.min_distance_list(fl, enemy);
@@ -258,9 +275,56 @@ public class AI {
 		
 		point -= avg_dist * CLOSE_ENEMY_FL_RM_AVG;
 		point -= min_dist * CLOSE_ENEMY_FL_RM_MIN;
-		point += req * EMPTINESS_FL_RM; 
+		point -= req * EMPTINESS_FL_RM; 
 		
 		return point;
+	}
+	
+	int count_options_for_FL(Node fl){
+		Node[] NGH = fl.getNeighbours();
+		int cnt = 0;
+		for( Node ngh:NGH )
+			if( NodeList[ngh.getIndex()].type > 1)
+				cnt ++;
+		return cnt;
+	}
+	boolean has_aliance_neighbour( Node sample ){
+		Node[] NGH = sample.getNeighbours();
+		for(Node ngh: NGH)
+			if( ngh.getOwner() == my_world.getMyID() )
+				return true;
+		return false;
+	}
+	void sort_by_army_count (ArrayList<Node> list, boolean ascending){//ascending
+		int n = list.size();
+		boolean flag = true;
+		while(flag == true){
+			flag = false;
+			for(int i=0; i<n-1; i++)
+				if( (list.get(i).getArmyCount() < list.get(i+1).getArmyCount()) != ascending){
+					Collections.swap(list, i, i+1);
+					flag = true;
+				}
+		}
+	}
+	int max_min_index(int[] arr, int max){
+		int M = arr[0];
+		int M_index = 0;
+		for(int i=1; i<arr.length; i++)
+			if( (max==1 && arr[i] > M) || (max==0 && arr[i] < M) ){		
+				M = arr[i];
+				M_index = i;
+			}
+		return M_index;
+	}
+	int estimate_enemy_count(Node nd){
+		int i = nd.getIndex();
+		if( NodeList[i].node.getArmyCount() == 0 )
+			return my_world.getLowArmyBound();
+		else if( NodeList[i].node.getArmyCount() == 1 )
+			return my_world.getMediumArmyBound();
+		else
+			return 100;
 	}
 	
 	boolean is_path_free (Node in, int BlockType){
@@ -307,23 +371,20 @@ public class AI {
 		// Send Army: 
 		for(Integer r:rlist){
 			int D2F = warshall.D[ NodeList[r].q.get(0) ][r];
-			if( D2F <= 1 ){
+			if( D2F <= RESOURCE_THRESHOLD ){
 				int [] Priority = new int[ NodeList[r].q.size() ];
 				for(int k=0; k<Priority.length; k++)
 					Priority[k] = FLine_Priority_for_RM( NodeList[r].q.get(k), enemy );
-				
-				int max_pr = Priority[0];
-				int dest   = NodeList[r].q.get(0);
-				for(int k=1; k<Priority.length; k++)
-					if( max_pr < Priority[k] ){
-						max_pr = Priority[k];
-						dest   = NodeList[r].q.get(k);
-					}
+								
+				int max_idx = max_min_index(Priority, 1);//max
+				int dest = NodeList[r].q.get(max_idx);
 				int count_value = NodeList[r].node.getArmyCount();
 				my_world.moveArmy(r, warshall.next_hop(NodeList[r].node, NodeList[dest].node), count_value);				
-			}else{
+			}else{				
 				int count_value = NodeList[r].node.getArmyCount();
 				int dest = NodeList[r].circulate_queue_poll();
+				if( is_FL_on_Free_Path(NodeList[dest].node) )
+					dest = NodeList[r].circulate_queue_poll();
 				my_world.moveArmy(r, warshall.next_hop(NodeList[r].node, NodeList[dest].node), count_value);
 			}
 		}
@@ -353,7 +414,7 @@ public class AI {
 		return _score;
 	}	
 	
-	void Frontier_Manager_Saeed(){
+	void Frontier_Manager(){
 		ArrayList<Integer> frontiers = new ArrayList<Integer>();
 		get_nodes_index_by_type(1, frontiers);
 		for(Integer i:frontiers){		
@@ -407,7 +468,9 @@ public class AI {
 		update_node_list(); // Run each cycle
 
         Resource_Manager();
-        Frontier_Manager_Saeed();
+        Frontier_Manager();
+        
+        System.out.println(world.getMyNodes().length);
 	}catch(Exception e){}
 	}
 }
