@@ -141,7 +141,7 @@ public class AI {
 	int ENEMY_POWER = 5;	// How is the difference between power of us and destination enemy
 	int UNDER_ATTACK = 2;	//	destination is under attack by another monster
 	int DISTANCE_TO_OUR_UNIT = 1; // nearness to our units
-	int MAX_DISTANCE_TO_FRIEND = 7; // maximum distance to our frineds
+	int MAX_DISTANCE_TO_FRIEND = 7; // maximum distance to our friends
 	double ENEMY_REMAIN = 0.1;	// point based on number of enemy that cannot flee
 	double ENEMY_EXISTENCE = 0.02;
 	double REMAIN_UNITS = 0.2;	// remain units
@@ -393,37 +393,20 @@ public class AI {
 			}
 		}
 	}
-		
-	int Get_Distance_To_Friend(Node src, Node in){
-		boolean [] mark = new boolean[this.size];
-		mark[ in.getIndex() ] = true;
-		Queue<Integer> q = new LinkedList<Integer>();
-		q.add(in.getIndex());
-		int head;
-		int distance = 0;
-		
-		if(in.getOwner() == my_world.getMyID())
-			return distance;
-					
-		while( q.size() > 0 ){
-			head = q.poll();
-			distance++;
-			Node[] NGH = NodeList[head].node.getNeighbours();
-			for( Node ngh: NGH ){				
-				if(ngh.getIndex() == src.getIndex())
-					continue;
-				if( NodeList[ngh.getIndex()].node.getOwner() == my_world.getMyID())
-					return distance;
-				else if( !mark[ngh.getIndex()]){
-					mark[ngh.getIndex()] = true;
-					q.add(ngh.getIndex());
-				}
-			}			
-			
-		}		
-		return this.size + 100;
-	}
 	
+	int Get_Distance_To_Friend(Node src, Node in){
+		if(in.getOwner() == my_world.getMyID())
+			return 0;
+		
+		int min_dist = warshall.MY_MAX;
+		Node[] _mynodes = my_world.getMyNodes();
+		for( int i=0; i<_mynodes.length; i++ )
+			if( warshall.D[in.getIndex()][_mynodes[i].getIndex()] < min_dist )
+				if( _mynodes[i].getIndex() != src.getIndex() )
+					min_dist = warshall.D[in.getIndex()][_mynodes[i].getIndex()];
+		return min_dist;			
+	}
+
 	int GetScore(Node src, Node des){
 		int _score = 0;
 		Node[] neighbours = des.getNeighbours();
@@ -522,6 +505,7 @@ public class AI {
 
         Resource_Manager();
         Frontier_Manager();
+        System.out.println(world.getMyNodes().length);
         
 	}catch(Exception e){}
 	}
