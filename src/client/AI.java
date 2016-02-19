@@ -139,11 +139,12 @@ public class AI {
 	int VERTEX_DEGREE = 1;	
 	int ENEMY_NEIGHBOUR = 6;
 	int ENEMY_POWER = 5;	// How is the difference between power of us and destination enemy
-	int UNDER_ATTACK = 1;	//	destination is under attack by another monster
+	int UNDER_ATTACK = 2;	//	destination is under attack by another monster
 	int DISTANCE_TO_OUR_UNIT = 1; // nearness to our units
 	int MAX_DISTANCE_TO_FRIEND = 7; // maximum distance to our frineds
 	double ENEMY_REMAIN = 0.1;	// point based on number of enemy that cannot flee
 	double ENEMY_EXISTENCE = 0.02;
+	double REMAIN_UNITS = 0.2;	// remain units
 // -------------------------------- GlOBAL VARIABLES HERE
 	World my_world; // Local World	
 	WARSHALL warshall;
@@ -504,7 +505,7 @@ public class AI {
             	
             	//------ decrease army count based on our power 
             	if( armycount > 50)
-            		armycount -= armycount/10;
+            		armycount -= armycount * REMAIN_UNITS;
             }            
             
             my_world.moveArmy(source, final_des, armycount);
