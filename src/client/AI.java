@@ -140,6 +140,9 @@ public class AI {
 	int ENEMY_NEIGHBOUR = 6;
 	int ENEMY_POWER = 5;	// How is the difference between power of us and destination enemy
 	int UNDER_ATTACK = 1;	//	destination is under attack by another monster
+	int DISTANCE_TO_OUR_UNIT = 1; // nearness to our units
+	int MAX_DISTANCE_TO_FRIEND = 7; // maximum distance to our frineds
+	double ENEMY_REMAIN = 0.1;	// point based on number of enemy that cannot flee
 	double ENEMY_EXISTENCE = 0.02;
 // -------------------------------- GlOBAL VARIABLES HERE
 	World my_world; // Local World	
@@ -389,10 +392,41 @@ public class AI {
 			}
 		}
 	}
+		
+	int Get_Distance_To_Friend(Node src, Node in){
+		boolean [] mark = new boolean[this.size];
+		mark[ in.getIndex() ] = true;
+		Queue<Integer> q = new LinkedList<Integer>();
+		q.add(in.getIndex());
+		int head;
+		int distance = 0;
+		
+		if(in.getOwner() == my_world.getMyID())
+			return distance;
+					
+		while( q.size() > 0 ){
+			head = q.poll();
+			distance++;
+			Node[] NGH = NodeList[head].node.getNeighbours();
+			for( Node ngh: NGH ){				
+				if(ngh.getIndex() == src.getIndex())
+					continue;
+				if( NodeList[ngh.getIndex()].node.getOwner() == my_world.getMyID())
+					return distance;
+				else if( !mark[ngh.getIndex()]){
+					mark[ngh.getIndex()] = true;
+					q.add(ngh.getIndex());
+				}
+			}			
+			
+		}		
+		return this.size + 100;
+	}
 	
 	int GetScore(Node src, Node des){
 		int _score = 0;
 		Node[] neighbours = des.getNeighbours();
+		Node[] src_neighbours = src.getNeighbours();
 		_score += neighbours.length * VERTEX_DEGREE;	// Degree point
 				
 		//------------------------- priority base on our power and enemy power
@@ -404,9 +438,30 @@ public class AI {
 		else
 			my_power = 2;
 		
-		if( des.getOwner() != my_world.getMyID())
-			_score += (my_power - des.getArmyCount() + 1) * ENEMY_POWER; 
+		if( des.getOwner() != my_world.getMyID() && des.getOwner() >= 0)			
+			_score += (my_power - des.getArmyCount() + 1) *  ENEMY_POWER;
+		
+		//----------------------- distance to our units priority		
+		boolean is_friend = false;
+		for(Node tmp:src_neighbours){
+			if (NodeList[tmp.getIndex()].type <= 1)
+				is_friend = true;
+		}
+		if(!is_friend){
+			if(MAX_DISTANCE_TO_FRIEND > Get_Distance_To_Friend(src, des) )
+				_score += (MAX_DISTANCE_TO_FRIEND - Get_Distance_To_Friend(src, des)) * DISTANCE_TO_OUR_UNIT;
+		}
 				
+		//-------------------- number of enemy who can flee		
+		if(NodeList[des.getIndex()].type == 3){
+			int enemy_counter = 0;
+			for(Node tmp: neighbours)
+				if(tmp.getOwner()>=0 && tmp.getOwner() != my_world.getMyID())
+					enemy_counter++;
+					
+			if( src.getArmyCount() > estimate_enemy_count(des))
+				_score += (estimate_enemy_count(des) - enemy_counter * my_world.getEscapeConstant()) * ENEMY_REMAIN;  
+		}
 		//-------------------- under attack priority
 		if( NodeList[des.getIndex()].underattack)
 			_score -= UNDER_ATTACK;
@@ -447,13 +502,10 @@ public class AI {
             	//----- decrease army count based on enemy count
             	armycount -= has_enemy *  armycount * ENEMY_EXISTENCE;
             	
-            	//------ decrease amry count based on enemy count
+            	//------ decrease army count based on our power 
             	if( armycount > 50)
             		armycount -= armycount/10;
-            	//if( has_enemy > 0 && final_des.getOwner() == -1)
-            		//armycount = 1;            	
-            }
-            
+            }            
             
             my_world.moveArmy(source, final_des, armycount);
             NodeList[final_des.getIndex()].underattack = true;
@@ -470,7 +522,6 @@ public class AI {
         Resource_Manager();
         Frontier_Manager();
         
-        System.out.println(world.getMyNodes().length);
 	}catch(Exception e){}
 	}
 }
