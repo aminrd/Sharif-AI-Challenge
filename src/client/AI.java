@@ -239,11 +239,18 @@ public class AI {
 					NodeList[i].type = 1; // FRONT LINE
 			}
 			if(NodeList[i].type == 1)
-				FNodes.add(NodeList[i].node);
+					FNodes.add(NodeList[i].node);
 			else if(NodeList[i].type == 0)
 				RNodes.add(NodeList[i].node);
 		}
-
+		
+		ArrayList<Node> NewFNodes = new ArrayList<Node>();
+		for(Node e:FNodes)
+			if( !is_FL_on_Free_Path(e) )
+				NewFNodes.add(e);
+		FNodes.clear();
+		FNodes.addAll(NewFNodes);		
+		
 		for(Node r:RNodes){
 			int minF = warshall.min_distance_list(r, FNodes);
 			minF = Math.max(minF, RESOURCE_THRESHOLD);
@@ -260,7 +267,7 @@ public class AI {
 		if( count_options_for_FL(fl) <= 1 ){
 			Node[] NGH = fl.getNeighbours();
 			for(Node ngh: NGH)
-				if( ngh.getOwner() <0 && is_path_free(ngh, my_world.getMyID()) )
+				if( (NodeList[ngh.getIndex()].type == 2) && is_path_free(ngh, my_world.getMyID()) )
 					return true;
 		}		
 		return false;
@@ -289,7 +296,7 @@ public class AI {
 		int cnt = 0;
 		for( Node ngh:NGH )
 			if( NodeList[ngh.getIndex()].type > 1)
-				cnt ++;
+				cnt++;
 		return cnt;
 	}
 	boolean has_aliance_neighbour( Node sample ){
@@ -505,7 +512,6 @@ public class AI {
 
         Resource_Manager();
         Frontier_Manager();
-        System.out.println(world.getMyNodes().length);
         
 	}catch(Exception e){}
 	}
