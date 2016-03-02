@@ -142,7 +142,8 @@ public class AI {
 	int UNDER_ATTACK = 2;	//	destination is under attack by another monster
 	int DISTANCE_TO_OUR_UNIT = 1; // nearness to our units
 	int MAX_DISTANCE_TO_FRIEND = 7; // maximum distance to our friends
-	double ENEMY_REMAIN = 0.1;	// point based on number of enemy that cannot flee
+	int NOT_ATTACK_ENEMY = 20;
+	double ENEMY_REMAIN = 0.02;	// point based on number of enemy that cannot flee
 	double ENEMY_EXISTENCE = 0.02;
 	double REMAIN_UNITS = 0.2;	// remain units
 // -------------------------------- GlOBAL VARIABLES HERE
@@ -429,8 +430,15 @@ public class AI {
 		else
 			my_power = 2;
 		
+		
+		
 		if( des.getOwner() != my_world.getMyID() && des.getOwner() >= 0)			
-			_score += (my_power - des.getArmyCount() + 1) *  ENEMY_POWER;
+		{
+			if( des.getArmyCount() > my_power )
+				_score -= NOT_ATTACK_ENEMY;
+			else				
+				_score += (my_power - des.getArmyCount() + 1) *  ENEMY_POWER;
+		}
 		
 		//----------------------- distance to our units priority		
 		boolean is_friend = false;
