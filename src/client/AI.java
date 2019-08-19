@@ -1,3 +1,6 @@
+// Authors: Amin Aghaee and Saeed Abedi Gozal Abad
+// Copyright 2016
+
 package client;
 import java.util.ArrayList;
 import java.util.Collections;
